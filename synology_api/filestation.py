@@ -506,9 +506,30 @@ class FileStation:
         info = self.file_station_list[api_name]
         api_path = info['path']
         filename = os.path.basename(file_path)
+        filepath = os.path.dirname(file_path)
 
         session = requests.session()
 
+        url = ('%s%s' % (self.base_url, api_path)) + '?api=%s&version=%s&method=upload&_sid=%s' % (
+            api_name, info['minVersion'], self._sid)
+
+        args = {
+            'path': dest_path,
+            'create_parents': str(create_parents).lower(),
+            'overwrite': str(overwrite).lower(),
+        }
+
+        encode_file = open(file_path, 'rb')
+
+        r = session.post(url, data=args, files={'from_field_name': encode_file}, verify=verify)
+
+        if r.ok:
+            print('completed')
+            print(r.text)
+        else:
+            print('???')
+
+        '''
         with open(file_path, 'rb') as payload:
             url = ('%s%s' % (self.base_url, api_path)) + '?api=%s&version=%s&method=upload&_sid=%s' % (
                 api_name, info['minVersion'], self._sid)
@@ -526,7 +547,7 @@ class FileStation:
             if r.status_code == 200 and r.json()['success']:
                 return 'Upload Complete'
             else:
-                return r.status_code, r.json()
+                return r.status_code, r.json()'''
 
     def get_shared_link_info(self, link_id=None):
         api_name = 'SYNO.FileStation.Sharing'

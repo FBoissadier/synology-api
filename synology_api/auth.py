@@ -12,6 +12,8 @@ from .exceptions import CertificateError, DHCPServerError, DirectoryServerError,
 from .exceptions import LogCenterError, NoteStationError, OAUTHError, PhotosError, SecurityAdvisorError
 from .exceptions import UniversalSearchError, USBCopyError, VPNError, CoreSysInfoError, UndefinedError
 
+from datetime import datetime
+
 USE_EXCEPTIONS: bool = True
 
 
@@ -45,6 +47,16 @@ class Authentication:
 
         self.full_api_list = {}
         self.app_api_list = {}
+        
+    def load_translations_error_codes_js(self, lang: str = '') -> bytes:
+        randomInt = int(datetime.now().timestamp())
+        response = requests.get(f'{self._base_url}entry.cgi?api=SYNO.Core.Desktop.UIString&version=1&method=getjs&lang={lang}&v={randomInt}')
+        return response.content
+    
+    def load_error_codes_js(self) -> bytes:
+        randomInt = int(datetime.now().timestamp())
+        response = requests.get(f'{self._base_url.replace("webapi","")}synoSDSjslib/dist/sds.bundle.js?v={randomInt}')
+        return response.content
 
     def verify_cert_enabled(self) -> bool:
         return self._verify

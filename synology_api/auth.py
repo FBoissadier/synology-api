@@ -48,9 +48,14 @@ class Authentication:
         self.full_api_list = {}
         self.app_api_list = {}
         
-    def load_translations_error_codes_js(self, lang: str = '') -> bytes:
+    def load_UIString_file(self, lang: str = '') -> bytes:
         randomInt = int(datetime.now().timestamp())
         response = requests.get(f'{self._base_url}entry.cgi?api=SYNO.Core.Desktop.UIString&version=1&method=getjs&lang={lang}&v={randomInt}')
+        return response.content
+    
+    def load_JSUIString_file(self, lang: str = '') -> bytes:
+        randomInt = int(datetime.now().timestamp())
+        response = requests.get(f'{self._base_url}entry.cgi?api=SYNO.Core.Desktop.JSUIString&version=1&method=getjs&lang={lang}&v={randomInt}')
         return response.content
     
     def load_error_codes_js(self) -> bytes:

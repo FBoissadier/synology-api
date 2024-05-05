@@ -17,6 +17,7 @@ import js2py
 import time
 import re
 from json import dumps
+from synology_api import auth
 
 USERNAME = config('USERNAME')
 PASSWORD = config('PASSWORD')
@@ -43,8 +44,7 @@ context.execute(a.load_JSUIString_file().decode('utf-8'))
 sds_file_content: str = a.load_error_codes_js().decode('utf-8')
 
 # Regex pattern
-
-pattern = r'function\s+n\(\)([\s\S]\*?)(?=function\s+s\(\)|$)'
+pattern = r'function\s+n\(\)([\s\S]*?)(?=function\s+s\(\)|$)'
 
 # Find all matches
 
@@ -56,7 +56,7 @@ sds_errors_code = sds_errors_code.replace("SYNO.SDS.formatString", '"".concat')
 context.execute(sds_errors_code)
 errors = context.errors.to_dict()
 with open('errors.json', 'w') as f:
-f.write(dumps(errors))
+    f.write(dumps(errors))
 
     t1 = time.time()
     total = t1-t0

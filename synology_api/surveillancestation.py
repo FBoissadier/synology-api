@@ -1,15 +1,76 @@
 from __future__ import annotations
-from typing import Optional, Any
+from typing import Optional, Any, List
 from . import base_api
+import json
+from enum import Enum
 
 
 class SurveillanceStation(base_api.BaseApi):
 
-    def surveillance_station_info(self) -> dict[str, object] | str:
+    def surveillance_station_info(self) -> dict:
+        """Get infos about surveillance station and the server
+        
+            Returns
+            -------
+            dict
+                Informations about surveillance station and the server
+        
+            Example return
+            ----------
+            ```json
+            {
+                "data": {
+                    "CMSMinVersion": "9.2.2-11575",
+                    "DSModelName": "DS723+",
+                    "SvsClientMinVersion": "2.1.3-2474",
+                    "VS360HDLoginMinVersion": "5.0.1-6253",
+                    "VS960HDMinVersion": "3.0.1-3254",
+                    "cameraNumber": 1,
+                    "customizedPortHttp": 9900,
+                    "defaultWallpaperCount": 2,
+                    "enableVideoRelay": false,
+                    "hostname": "SYNO-FLORENTB",
+                    "inaAdvancedPriv": 0,
+                    "isBeta": false,
+                    "isLicenseEnough": 1,
+                    "is_beta": false,
+                    "liscenseNumber": 2,
+                    "maxCameraSupport": 40,
+                    "maxlanport": "3",
+                    "path": "/webman/3rdparty/SurveillanceStation/",
+                    "pluginHelperVersion": "",
+                    "productName": "Synology NAS",
+                    "remindQuickconnectTunnel": true,
+                    "reportURL": "deprecated",
+                    "serial": "2260TPR7X30E6",
+                    "serviceVolSize": 192,
+                    "strInaAdvancedPriv": "000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                    "timezone": "Amsterdam",
+                    "timezoneTZDB": "Europe/Amsterdam",
+                    "uid": 1027,
+                    "unique": "synology_r1000_723+",
+                    "userPriv": 1,
+                    "version": {
+                        "build": "11575",
+                        "major": "9",
+                        "minor": "2",
+                        "small": "2"
+                    },
+                    "webPluginVersion": ""
+                },
+                "success": true
+            }
+            ```
+        """
+        
+        
         api_name = 'SYNO.SurveillanceStation.Info'
         info = self.gen_list[api_name]
         api_path = info['path']
-        req_param = {'version': info['maxVersion'], 'method': 'GetInfo'}
+        req_param = {
+            'version': info['maxVersion'],
+            'method': 'GetInfo'
+        }
 
         return self.request_data(api_name, api_path, req_param)
 
@@ -52,41 +113,470 @@ class SurveillanceStation(base_api.BaseApi):
 
         return self.request_data(api_name, api_path, req_param)
 
-    def camera_list(self, idList: str = None,
-                      offset: int = None,
-                      limit: int = None,
-                      blFromCamList: bool = None,
-                      blIncludeDeletedCam: bool = None,
-                      privCamType: str = None,
-                      basic: bool = None,
-                      streamInfo: bool = None,
-                      blPrivilege: bool = None,
-                      camStm: int = None) -> dict[str, object] | str:
+    def camera_list(self, idList: str = "", blFromCamList: bool = False, offset: int = 0, limit: int = 0, blIncludeDeletedCam: bool = True,
+                privCamType: int = 3, basic: bool = True, streamInfo: bool = True, blPrivilege: bool = True, camStm: int = 2,
+                blGetMulticastInfo: bool = True, videoCapInfo: bool = False, eventDetection: bool = True, ptz: bool = True,
+                fisheye: bool = True, deviceOutCap: bool = True, liveviewAnalytics: bool = True, ioList: bool = True, optimize: bool = True
+            ) -> dict:
+        """Get camera list with a lot of options
+        
+            Parameters
+            ----------
+            idList : str, optional
+                The list of <CAMERA_ID> to be queried concatenated by ",". Defaults to `""`
+            blFromCamList : bool, optional
+                Indicating if the caller is from cam list. Defaults to `False`
+            offset : int, optional
+                The offset to be shifted in the total result. Defaults to `0`
+            limit : int, optional
+                Number of cameras to be returned.. Defaults to `0`
+            blIncludeDeletedCam : bool, optional
+                Indicating if deleted cameras should be listed or not. Defaults to `True`
+            privCamType : int, optional
+                Weighted sum indicated the types of the camera. Defaults to `3`
+                    0x00: NONE
+                    0x01: LIVEVIEW
+                    0x02: PLAYBACK
+                    0x04: LENS
+                    0x08: AUDIO.
+            basic : bool, optional
+                Indicating to show basic settings or not. Defaults to `True`
+            streamInfo : bool, optional
+                Indicating to show streaming information or not. Defaults to `True`
+            blPrivilege : bool, optional
+                Indicating if the user privilege should be checked or not. Defaults to `True`
+            camStm : int, optional
+                Stream number of the camera live view
+                    • 0: Live stream
+                    • 1: Recording stream
+                    • 2: Mobile stream (default value)
+                Defaults to `2`
+            blGetMulticastInfo : bool, optional
+                Indicating to show multicast infos or not. Defaults to `True`
+            videoCapInfo : bool, optional
+                Indicating to show video capabilities or not. Defaults to `False`
+            eventDetection : bool, optional
+                Indicating to show event detection or not. Defaults to `True`
+            ptz : bool, optional
+                Indicating to show ptz info or not. Defaults to `True`
+            fisheye : bool, optional
+                Indicating to show fisheye info or not. Defaults to `True`
+            deviceOutCap : bool, optional
+                Indicating to show deviceOutCap info or not. Defaults to `True`
+            liveviewAnalytics : bool, optional
+                Indicating to show liveviewAnalytics info or not. Defaults to `True`
+            ioList : bool, optional
+                Indicating to show ioList info or not. Defaults to `True`
+            optimize : bool, optional
+                Optimize. Defaults to `True`
+        
+            Returns
+            -------
+            dict
+                A lot of informations about each camera
+        
+            Example return
+            ----------
+            
+            ```json
+            {
+                "data": {
+                    "cameras": [
+                        {
+                            "ADCap": 0,
+                            "ADDetSrc": -1,
+                            "AppList": [],
+                            "DINum": 0,
+                            "DONum": 0,
+                            "MDCap": 0,
+                            "MDDetSrc": -1,
+                            "MDModeList": [
+                                0,
+                                1
+                            ],
+                            "PDCap": 0,
+                            "PDDepend": 0,
+                            "PDDetSrc": -1,
+                            "QRCodeCap": 0,
+                            "TDCap": 0,
+                            "TDDetSrc": -1,
+                            "advLiveMinDuration": 10,
+                            "advLiveProfile": 0,
+                            "advLiveTrigAuto": true,
+                            "advLiveTrigEvt": "000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                            "advLiveTrigSingle": false,
+                            "alertEvents": "000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+                            "analyticsDirection": 1,
+                            "analyticsDwellTime": 5,
+                            "analyticsFrame": true,
+                            "analyticsLine": false,
+                            "analyticsObjSize": 0,
+                            "analyticsRegion": "",
+                            "analyticsSens": 1,
+                            "analyticsType": 0,
+                            "analyticsVirtualFence": false,
+                            "appDetType": -1,
+                            "application": false,
+                            "audioCap": true,
+                            "audioDenoiseLevel": 0,
+                            "audioOut": false,
+                            "audioType": 6,
+                            "autoFocus": false,
+                            "autoPan": 0,
+                            "autoPanInitPos": -2,
+                            "autoPanPreSleepTime": 10,
+                            "autoUpgradeCriticalOnly": false,
+                            "autoUpgradeDays": "",
+                            "autoUpgradeEnabled": false,
+                            "autoUpgradeHour": 0,
+                            "autoUpgradeMinute": 0,
+                            "auto_restart_interval": 0,
+                            "blAudioDenoiseEnabled": false,
+                            "blAudioDisableRec": false,
+                            "blAudioPriv": true,
+                            "blDayLightSavingEnabled": false,
+                            "blDisableRec": false,
+                            "blEnableExtDI": false,
+                            "blEnableLiveBuffering": false,
+                            "blG726LE": false,
+                            "blHDREnabled": false,
+                            "blLEDIndicatorEnabled": false,
+                            "blLiveviewPriv": true,
+                            "blPresetSpeed": false,
+                            "blPtzShowIcon": false,
+                            "blReceivePocZero": false,
+                            "blThirdStream": true,
+                            "brightness": 0,
+                            "c2_plan_id": "",
+                            "c2_stream_no": 0,
+                            "calling_notify_ado_src_id": 0,
+                            "calling_notify_duration": 0,
+                            "camCurrentFirmware": "",
+                            "camDualRecStorageStatus": 0,
+                            "camFov": "",
+                            "camIdOnRecServer": 0,
+                            "camLiveMode": 0,
+                            "camMobileLiveMode": 0,
+                            "camMountType": 0,
+                            "camRecShare": "surveillance",
+                            "camRecShareMountType": 0,
+                            "camRecSharePath": "/volume1/surveillance",
+                            "camRecStorageStatus": 0,
+                            "camRecVolume": "/volume1",
+                            "camRotOption": 0,
+                            "camSourceType": 1,
+                            "camStatus": 16,
+                            "camVideoType": "H.264",
+                            "channel_id": "1",
+                            "checkedAlertDIs": 0,
+                            "connectionOverSSL": false,
+                            "contrast": 0,
+                            "dayToNightThreshold": 0,
+                            "daybegin": 8,
+                            "daybeginMinute": 0,
+                            "dayend": 18,
+                            "dayendMinute": 0,
+                            "defLiveProfile": 0,
+                            "defog": 0,
+                            "deleted": false,
+                            "denoiseLevel": 0,
+                            "deviceType": 1,
+                            "doorbellNum": 0,
+                            "dsIp": "",
+                            "dsPort": 5000,
+                            "dualRec": {
+                                "camPostRecTime": 5,
+                                "camPreRecTime": 5,
+                                "drCustom1DIDetect": 0,
+                                "drCustom1Detect": 1,
+                                "drCustom2DIDetect": 0,
+                                "drCustom2Detect": 1,
+                                "drFolder": "Generic_ONVIF-001_dual",
+                                "drIsRotByDate": true,
+                                "drIsRotBySpace": false,
+                                "drIsSetEvtPrefix": false,
+                                "drIsSetRecFolder": true,
+                                "drPrefix": "Generic_ONVIF-001",
+                                "drRecShareName": "surveillance",
+                                "drRecSharePath": "/volume1/surveillance",
+                                "drRecordTime": 30,
+                                "drRotByDate": 30,
+                                "drRotBySpace": 10,
+                                "drSchedule": [
+                                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+                                ],
+                                "drStmProfile": 0,
+                                "drVolume": "/volume1"
+                            },
+                            "dualRecStatus": 0,
+                            "dual_rec_mode": 0,
+                            "dual_volume_space": "0",
+                            "enableAdvLive": false,
+                            "enableAutoLiveProfile": true,
+                            "enableMulticast": false,
+                            "enableMulticastMobile": false,
+                            "enablePrivacyMask": false,
+                            "enablePtzControl": true,
+                            "enableSRTP": false,
+                            "enable_calling_notify": false,
+                            "enabled": true,
+                            "exposure_control": 6,
+                            "exposure_mode": 4,
+                            "extDIDev": 0,
+                            "extDIPorts": -1,
+                            "feRegionList": [],
+                            "firmware": "",
+                            "fisheyeDispMode": "",
+                            "fisheyeParam": {},
+                            "folder": "/volume1/surveillance/Generic_ONVIF-001",
+                            "forceEnableMulticast": false,
+                            "forceMjpeg": false,
+                            "fps": 30,
+                            "hasCamParam": true,
+                            "hasEdgeStg": false,
+                            "host": "192.168.1.15",
+                            "id": 1,
+                            "intercomCap": 0,
+                            "io_list": [],
+                            "irLEDIntensity": 90,
+                            "isStatusUnrecognized": false,
+                            "is_rotated_by_date": true,
+                            "is_rotated_by_space": true,
+                            "last_edit_time": "",
+                            "last_restart_time": "",
+                            "last_sync_time": "",
+                            "ledCap": false,
+                            "liveBufferingSec": 1,
+                            "mac": "3E:5F:9C:A6:D7:1F",
+                            "mixAudioOutEnabled": false,
+                            "model": "Generic_ONVIF",
+                            "multiDI": false,
+                            "multicastAudioPort": 0,
+                            "multicastAudioPortMobile": 0,
+                            "multicastGrpAddr": "",
+                            "multicastGrpAddrMobile": "",
+                            "multicastVideoPort": 0,
+                            "multicastVideoPortMobile": 0,
+                            "mute": false,
+                            "name": "Generic_ONVIF-001",
+                            "nightToDayThreshold": 0,
+                            "objTrack": false,
+                            "osdColor": 0,
+                            "osdDateFormat": 0,
+                            "osdText": "",
+                            "osdTimeFormat": 0,
+                            "osd_format": 0,
+                            "osd_position": 6,
+                            "osd_status": true,
+                            "ownerDsId": 0,
+                            "pairedSpeakerEnabled": false,
+                            "pairedSpeakerId": 0,
+                            "pairedSpeakerType": 0,
+                            "param_chklist": 1,
+                            "period_sync_time_hour": 0,
+                            "port": 8080,
+                            "presetNum": 0,
+                            "privacyMaskEnabled": false,
+                            "privacyMaskSrc": 0,
+                            "privacyRegion": "",
+                            "privilege": 31,
+                            "profileSettingList": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0",
+                            "ptSpeed": 3,
+                            "ptzCap": 0,
+                            "ptzContinuous": 0,
+                            "ptzCtrlConfig": {},
+                            "ptzDirection": 0,
+                            "ptzHomeType": 0,
+                            "ptzSpeedConfig": -1,
+                            "ptzSpeedKeepOrigin": true,
+                            "quality": "5",
+                            "recBitrateCtrl": 1,
+                            "recCbrBitrate": 1024,
+                            "recStatus": 0,
+                            "relayPortList": [],
+                            "resolution": "1920x1080",
+                            "restart_day": 0,
+                            "rotation_by_date": 30,
+                            "rotation_by_space": "10",
+                            "rotation_option": 0,
+                            "rtspPathTimeout": 0,
+                            "saturation": 0,
+                            "serialNumber": "",
+                            "setDICap": false,
+                            "setDOCap": false,
+                            "sharpness": 0,
+                            "shutterGainMax": 0,
+                            "shutterGainMin": 0,
+                            "shutterMax": 0,
+                            "shutterMin": 0,
+                            "singleStream": true,
+                            "snapshotInterval": 0,
+                            "snapshot_path": "/webapi/entry.cgi?api=SYNO.SurveillanceStation.Camera&method=GetSnapshot&version=1&cameraId=1&timestamp=1739488148&preview=true&camStm=1",
+                            "speedDryCap": false,
+                            "status": 3,
+                            "status_flags": 0,
+                            "stmFisheyeType": 0,
+                            "stm_info": [
+                                {
+                                    "camPath": "cnRzcDovL2FkbWluOmFkbWluQDE5Mi4xNjguMS4xNTo4MDgwL2gyNjRfbm9hdWRpby5zZHA=",
+                                    "fisheyeType": 0,
+                                    "fps": 30,
+                                    "quality": "5",
+                                    "resolution": "1920x1080",
+                                    "stmNo": 1,
+                                    "type": 0
+                                },
+                                {
+                                    "camPath": "cnRzcDovL2FkbWluOmFkbWluQDE5Mi4xNjguMS4xNTo4MDgwL2gyNjRfdWxhdy5zZHA=",
+                                    "fisheyeType": 0,
+                                    "fps": 30,
+                                    "quality": "5",
+                                    "resolution": "1920x1080",
+                                    "stmNo": 1,
+                                    "type": 1
+                                },
+                                {
+                                    "camPath": "cnRzcDovL2FkbWluOmFkbWluQDE5Mi4xNjguMS4xNTo4MDgwL2gyNjRfdWxhdy5zZHA=",
+                                    "fisheyeType": 0,
+                                    "fps": 30,
+                                    "quality": "5",
+                                    "resolution": "1920x1080",
+                                    "stmNo": 1,
+                                    "type": 2
+                                }
+                            ],
+                            "stm_info_ptzCaps": [
+                                {
+                                    "autoFocus": false,
+                                    "autoPan": 0,
+                                    "autoPanInitPos": -2,
+                                    "autoPanPreSleepTime": 10,
+                                    "blPresetSpeed": false,
+                                    "blPtzShowIcon": false,
+                                    "objTrack": false,
+                                    "presetNum": 0,
+                                    "ptSpeed": 3,
+                                    "ptzCap": 0,
+                                    "ptzContinuous": 0,
+                                    "ptzCtrlConfig": {},
+                                    "ptzDirection": 0,
+                                    "ptzHomeType": 0,
+                                    "ptzSpeedConfig": -1,
+                                    "ptzSpeedKeepOrigin": true,
+                                    "zoomSpeed": 3
+                                },
+                                {
+                                    "autoFocus": false,
+                                    "autoPan": 0,
+                                    "autoPanInitPos": -2,
+                                    "autoPanPreSleepTime": 10,
+                                    "blPresetSpeed": false,
+                                    "blPtzShowIcon": false,
+                                    "objTrack": false,
+                                    "presetNum": 0,
+                                    "ptSpeed": 3,
+                                    "ptzCap": 0,
+                                    "ptzContinuous": 0,
+                                    "ptzCtrlConfig": {},
+                                    "ptzDirection": 0,
+                                    "ptzHomeType": 0,
+                                    "ptzSpeedConfig": -1,
+                                    "ptzSpeedKeepOrigin": true,
+                                    "zoomSpeed": 3
+                                },
+                                {
+                                    "autoFocus": false,
+                                    "autoPan": 0,
+                                    "autoPanInitPos": -2,
+                                    "autoPanPreSleepTime": 10,
+                                    "blPresetSpeed": false,
+                                    "blPtzShowIcon": false,
+                                    "objTrack": false,
+                                    "presetNum": 0,
+                                    "ptSpeed": 3,
+                                    "ptzCap": 0,
+                                    "ptzContinuous": 0,
+                                    "ptzCtrlConfig": {},
+                                    "ptzDirection": 0,
+                                    "ptzHomeType": 0,
+                                    "ptzSpeedConfig": -1,
+                                    "ptzSpeedKeepOrigin": true,
+                                    "zoomSpeed": 3
+                                }
+                            ],
+                            "strTimeZone": "",
+                            "streamAudioVolume": 0,
+                            "time_server": "disable",
+                            "tvStandard": 0,
+                            "type": 3,
+                            "uiStmNoList": "1,1,1",
+                            "update_time": 13,
+                            "vendor": "ONVIF",
+                            "videoMode": "",
+                            "video_flip": true,
+                            "video_mirror": true,
+                            "video_rotation": 0,
+                            "volume": 50,
+                            "volume_space": "0",
+                            "whiteBalanceBlue": 0,
+                            "whiteBalanceMode": 0,
+                            "whiteBalanceRed": 0,
+                            "wifiSSID": "",
+                            "wiperCap": false,
+                            "zoomSpeed": 3
+                        }
+                    ],
+                    "delcam": [],
+                    "existCamMntTypeMap": null,
+                    "keyTotalCnt": 2,
+                    "keyUsedCnt": 1,
+                    "timestamp": "1739488148",
+                    "total": 1
+                },
+                "success": true
+            }
+            ```
+        """
 
         api_name = 'SYNO.SurveillanceStation.Camera'
         info = self.gen_list[api_name]
         api_path = info['path']
-        req_param = {'version': info['maxVersion'], 'method': 'List'}
-
-        for key, val in locals().items():
-            if key not in ['self', 'api_name', 'info', 'api_path', 'req_param']:
-                if val is not None:
-                    req_param[str(key)] = val
+        req_param = {
+            'version': info['maxVersion'],
+            'method': 'List',
+            "blIncludeDeletedCam": blIncludeDeletedCam,
+            "blGetMulticastInfo": blGetMulticastInfo,
+            "basic": basic,
+            "streamInfo": streamInfo,
+            "videoCapInfo": videoCapInfo,
+            "eventDetection": eventDetection,
+            "blPrivilege": blPrivilege,
+            "ptz": ptz,
+            "fisheye": fisheye,
+            "deviceOutCap": deviceOutCap,
+            "liveviewAnalytics": liveviewAnalytics,
+            "ioList": ioList,
+            "optimize": optimize,
+            "privCamType": privCamType,
+            "blFromCamList": blFromCamList,
+            "idList": idList,
+            "limit": limit,
+            "offset": offset,
+            "camStm": camStm,
+        }
 
         return self.request_data(api_name, api_path, req_param)
 
-    def get_camera_info(self,
-                        cameraIds: int = None,
-                        privCamType: int = 1, 
-                        blIncludeDeletedCam: bool = True,
-                        basic: bool = True,
-                        streamInfo: bool = True,
-                        optimize: bool = True,
-                        ptz: bool = True,
-                        eventDetection: bool = True,
-                        deviceOutCap: bool = True,
-                        fisheye: bool = True,
-                        camAppInfo: bool = True) -> dict[str, object] | str:
+    def get_camera_info(self, cameraIds: int = None, privCamType: int = 1,  blIncludeDeletedCam: bool = True,
+                basic: bool = True, streamInfo: bool = True, optimize: bool = True, ptz: bool = True,
+                eventDetection: bool = True, deviceOutCap: bool = True, fisheye: bool = True, camAppInfo: bool = True
+            ) -> dict[str, object] | str:
         '''
         This function return information about a camera.
         
@@ -1631,24 +2121,6 @@ class SurveillanceStation(base_api.BaseApi):
 
         return self.request_data(api_name, api_path, req_param)
 
-    def check_license_quota(self,
-                            camList: Any = None,
-                            camServerId: int = None) -> dict[str, object] | str:  # TODO not working
-        api_name = 'SYNO.SurveillanceStation.License'
-        info = self.gen_list[api_name]
-        api_path = info['path']
-        req_param = {'version': info['maxVersion'], 'method': 'CheckQuota'}
-
-        """camList example:
-        
-            camList = [{"ip": "10.13.22.141", "model": "DCS-3110", "vendor": "DLink", "port": 80}]"""
-
-        for key, val in locals().items():
-            if key not in ['self', 'api_name', 'info', 'api_path', 'req_param']:
-                if val is not None:
-                    req_param[str(key)] = val
-
-        return self.request_data(api_name, api_path, req_param)
 
     def get_http_video_stream(self,
                               writeHeader: bool = None,
@@ -3989,28 +4461,7 @@ class SurveillanceStation(base_api.BaseApi):
 
         return self.request_data(api_name, api_path, req_param)
 
-    def start_camera_search_process(self) -> dict[str, object] | str:
-        api_name = 'SYNO.SurveillanceStation.Camera.Search'
-        info = self.gen_list[api_name]
-        api_path = info['path']
-        req_param = {'version': info['maxVersion'], 'method': 'Start'}
 
-        return self.request_data(api_name, api_path, req_param)
-
-    def get_camera_search_info(self,
-                               pid: int = None,
-                               offset: int = None) -> dict[str, object] | str:
-        api_name = 'SYNO.SurveillanceStation.Camera.Search'
-        info = self.gen_list[api_name]
-        api_path = info['path']
-        req_param = {'version': info['maxVersion'], 'method': 'GetInfo'}
-
-        for key, val in locals().items():
-            if key not in ['self', 'api_name', 'info', 'api_path', 'req_param']:
-                if val is not None:
-                    req_param[str(key)] = val
-
-        return self.request_data(api_name, api_path, req_param)
 
     def toggle_home_mode(self,
                          on: bool = None) -> dict[str, object] | str:
@@ -5264,4 +5715,432 @@ class SurveillanceStation(base_api.BaseApi):
                     req_param[str(key)] = val
 
         return self.request_data(api_name, api_path, req_param)
+
+    def list_audio_pattern(self) -> dict:
+        """Get list of audio patterns
+        
+            Returns
+            -------
+            dict
+                List of audio patterns
+        
+            Example return
+            ----------
+            ```json
+            {
+                "data": {
+                    "audioPattern": [
+                        {
+                            "desc": "system default pattern 1",
+                            "fmt": ".mp3",
+                            "id": 1,
+                            "isDefault": true,
+                            "length": 8,
+                            "name": "Alarm Sound"
+                        },
+                        {
+                            "desc": "system default pattern 2",
+                            "fmt": ".mp3",
+                            "id": 2,
+                            "isDefault": true,
+                            "length": 40,
+                            "name": "Alarm beeping"
+                        },
+                        {
+                            "desc": "system default pattern 3",
+                            "fmt": ".mp3",
+                            "id": 3,
+                            "isDefault": true,
+                            "length": 28,
+                            "name": "Digital alarm clock beeping"
+                        },
+                        {
+                            "desc": "system default pattern 4",
+                            "fmt": ".mp3",
+                            "id": 4,
+                            "isDefault": true,
+                            "length": 5,
+                            "name": "Bell"
+                        },
+                        {
+                            "desc": "system default pattern 5",
+                            "fmt": ".mp3",
+                            "id": 5,
+                            "isDefault": true,
+                            "length": 20,
+                            "name": "Dog bark"
+                        },
+                        {
+                            "desc": "system default pattern 6",
+                            "fmt": ".mp3",
+                            "id": 6,
+                            "isDefault": true,
+                            "length": 31,
+                            "name": "Emergency SFX"
+                        },
+                        {
+                            "desc": "system default pattern 7",
+                            "fmt": ".mp3",
+                            "id": 7,
+                            "isDefault": true,
+                            "length": 10,
+                            "name": "Mans voice saying Hello"
+                        },
+                        {
+                            "desc": "system default pattern 8",
+                            "fmt": ".mp3",
+                            "id": 8,
+                            "isDefault": true,
+                            "length": 6,
+                            "name": "Mans voice saying Stop"
+                        },
+                        {
+                            "desc": "system default pattern 9",
+                            "fmt": ".mp3",
+                            "id": 9,
+                            "isDefault": true,
+                            "length": 9,
+                            "name": "Siren"
+                        },
+                        {
+                            "desc": "system default pattern 10",
+                            "fmt": ".mp3",
+                            "id": 10,
+                            "isDefault": true,
+                            "length": 18,
+                            "name": "Warning Signal Danger"
+                        }
+                    ],
+                    "total": 10
+                },
+                "success": true
+            }
+            ```
+        """
+    
+        api_name = 'SYNO.SurveillanceStation.AudioPattern'
+        info = self.gen_list[api_name]
+        api_path = info["path"]
+        req_param = {
+            "method": "list",
+            "version": info['minVersion'],
+        }
+        
+        return self.request_data(api_name, api_path, req_param)
+    
+    def list_share(self) -> dict:
+        """List share for recordings
+        
+            Returns
+            -------
+            dict
+                List of shared folder for recordings
+        
+            Example return
+            ----------
+            ```json
+            {
+                "data": {
+                    "sharelist": [
+                        {
+                            "blAutoMount": false,
+                            "blHidden": true,
+                            "blMigrating": false,
+                            "camCnt": 1,
+                            "description": "",
+                            "displayName": "surveillance / volume1",
+                            "enableRecLimit": false,
+                            "encType": 0,
+                            "mountSource": "",
+                            "mountStatus": 0,
+                            "mountType": 0,
+                            "quota": 192,
+                            "recLimitGB": 100,
+                            "shareDsId": 0,
+                            "shareId": 1,
+                            "shareIdOnRec": 0,
+                            "shareName": "surveillance",
+                            "sharePath": "/volume1/surveillance",
+                            "shareVolume": "volume1",
+                            "volumeFormat": 3
+                        }
+                    ],
+                    "total": 1
+                },
+                "success": true
+            }
+            ```
+        """
+        
+        api_name = 'SYNO.SurveillanceStation.Share'
+        info = self.gen_list[api_name]
+        api_path = info["path"]
+        req_param = {
+            "method": "ListRecShare",
+            "version": info['minVersion'],
+            "dsId": 0,
+            "blIncldMigrating": True,
+            "blIncldEncUnmount": True,
+            "blIncldRemoteAbnormal": True,
+        }
+        
+        return self.request_data(api_name, api_path, req_param)
+    
+    def check_license_quota(self, camList: List[dict]) -> dict:
+        """Check license quota if cameras in camList in added
+        
+            Parameters
+            ----------
+            camList : List[dict]
+                List of camera(s), here is example of a list of dict of the camera:
+                ```json
+                [{"ip": "10.13.22.141", "model": "DCS-3110", "vendor": "DLink", "port": 80}]
+                ```
+        
+            Returns
+            -------
+            dict
+                Infos about licenses and server
+        
+            Example return
+            ----------
+            ```json
+            {
+                "data": {
+                    "ServersList": [
+                        {
+                            "afterAdding": 2, 
+                            "beforeAdding": 1,
+                            "dsId": 0,        
+                            "platformMax": 40 
+                        }
+                    ],
+                    "licenseAvailable": 1,    
+                    "licenseNeeded": 1
+                },
+                "success": true
+            }
+            ```
+        """
+
+        api_name = 'SYNO.SurveillanceStation.License'
+        info = self.gen_list[api_name]
+        api_path = info["path"]
+        req_param = {
+            "method": "BatCheckQuota",
+            "version": info['minVersion'],
+            "camList": json.dumps(camList)
+        }
+        
+        return self.request_data(api_name, api_path, req_param)
+    
+    def start_camera_search_process(self) -> dict:
+        """Start the camera search process, return a PID
+        
+            Returns
+            -------
+            dict
+                pid that is used in the `get_camera_search_info` as parameter
+        
+            Example return
+            ----------
+            ```json
+            {
+                "data": {
+                    "pid": 12773
+                },
+                "success": true
+            }
+            ```
+        """
+
+        api_name = 'SYNO.SurveillanceStation.Camera.Search'
+        info = self.gen_list[api_name]
+        api_path = info['path']
+        req_param = {
+            "method": "Start",
+            "version": info['minVersion']
+        }
+        
+        return self.request_data(api_name, api_path, req_param)
+
+    def get_camera_search_info(self, pid: int, offset: int = 0,
+            blIncludeOverSSLCap: bool = True
+        ) -> dict:
+        """Get result of the search, this need to be call cyclic until result `searchStatus` is `False` (around 1min)
+        
+            Parameters
+            ----------
+            pid : int
+                pid that is given in response of the `start_camera_search_process`
+            offset : int, optional
+                Offset in the camera found. Defaults to `0`
+            blIncludeOverSSLCap : bool, optional
+                Include camera that support SSL. Defaults to `True`
+        
+            Returns
+            -------
+            dict
+                List of cameras with infos found between last call of the request
+        
+            Example return
+            ----------
+            ```json
+            {
+                "data": {
+                    "camCount": 1,
+                    "camList": [
+                        {
+                            "WiFiSSID": "",
+                            "blActivated": false,
+                            "blHasOverSSLCap": false,
+                            "blNativeIntegrated": false,
+                            "blOverSSL": false,
+                            "ip": "192.168.1.15",
+                            "mac": "3E:5F:9C:A6:D7:1F",
+                            "model": "BUILD_687",
+                            "operationMode": "",
+                            "port": 8080,
+                            "serialNumber": "",
+                            "vendor": "ONVIF"
+                        }
+                    ],
+                    "searchStatus": true
+                },
+                "success": true
+            }
+            ```
+        """
+
+        api_name = 'SYNO.SurveillanceStation.Camera.Search'
+        info = self.gen_list[api_name]
+        api_path = info['path']
+        req_param = {
+            "method": "GetInfo",
+            "version": info['minVersion'],
+            "pid": pid,
+            "blIpRange": False,
+            "blIncludeOverSSLCap": blIncludeOverSSLCap,
+            "offset": offset
+        }
+        
+        return self.request_data(api_name, api_path, req_param)
+    
+    def start_camera_search_iprange_process(self,
+            start_ip: str, end_ip: str, start_port: int, end_port: int,
+            model_list: List[dict]
+        ) -> dict:
+        """Start the camera search process with IP / port range and model list, return a PID
+        
+            Parameters
+            ----------
+            start_ip : str
+                Start IP address for the search
+            end_ip : str
+                End IP address for the search
+            start_port : int
+                Start port for the search.
+            end_port : int
+                Start port for the search.
+            model_list : List[dict]
+                List of dict that define models to search.
+                Here is an example:
+                ```json
+                [{"vendor":"ONVIF","model":"Generic_ONVIF","usr":"YOUR_CAMERA_USERNAME","pass":"YOUR_CAMERA_PASSWORD","isOverHTTPS":false}]
+                ```
+        
+            Returns
+            -------
+            dict
+                pid that is used in the `get_camera_search_iprange_info` as parameter
+        
+            Example return
+            ----------
+            ```json
+            {
+                "data": {
+                    "pid": 20228
+                },
+                "success": true
+            }
+            ```
+        """
+        api_name = 'SYNO.SurveillanceStation.Camera.Search'
+        info = self.gen_list[api_name]
+        api_path = info['path']
+        req_param = {
+            "method": "IPRange",
+            "version": info['minVersion'],
+            "modelList": json.dumps(model_list),
+            "startPort": start_port,
+            "endPort": end_port,
+            "startIP": start_ip,
+            "endIP": end_ip,
+            "blIpRange": True,
+        }
+        
+        return self.request_data(api_name, api_path, req_param)
+        
+    def get_camera_search_iprange_info(self, pid: int, offset: int = 0,
+            blIncludeOverSSLCap: bool = True
+        ) -> dict:
+        """Get result of the search from IP range, this need to be call cyclic until result `searchStatus` is `False` (around 200s in my test)
+        
+            Parameters
+            ----------
+            pid : int
+                pid that is given in response of the `start_camera_search_iprange_process`
+            offset : int, optional
+                Offset in the camera found. Defaults to `0`
+            blIncludeOverSSLCap : bool, optional
+                Include camera that support SSL. Defaults to `True`
+        
+            Returns
+            -------
+            dict
+                List of cameras with infos found between last call of the request
+        
+            Example return
+            ----------
+            ```json
+            {
+                "data": {
+                    "camCount": 1,
+                    "camList": [
+                        {
+                            "WiFiSSID": "",
+                            "blActivated": false,
+                            "blHasOverSSLCap": false,
+                            "blNativeIntegrated": false,
+                            "blOverSSL": false,
+                            "ip": "192.168.1.15",
+                            "mac": "3E:5F:9C:A6:D7:1F",
+                            "model": "BUILD_687",
+                            "operationMode": "",
+                            "port": 8080,
+                            "serialNumber": "",
+                            "vendor": "ONVIF"
+                        }
+                    ],
+                    "searchStatus": true
+                },
+                "success": true
+            }
+            ```
+        """
+        
+        api_name = 'SYNO.SurveillanceStation.Camera.Search'
+        info = self.gen_list[api_name]
+        api_path = info['path']
+        req_param = {
+            "method": "GetIPRangeInfo",
+            "version": info['minVersion'],
+            "pid": pid,
+            "blIpRange": True,
+            "blIncludeOverSSLCap": blIncludeOverSSLCap,
+            "offset": offset
+        }
+        
+        return self.request_data(api_name, api_path, req_param)
+    
 

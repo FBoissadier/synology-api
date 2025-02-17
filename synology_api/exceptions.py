@@ -1,6 +1,5 @@
 from .error_codes import error_codes, auth_error_codes, download_station_error_codes, file_station_error_codes, core_error_codes
-from .error_codes import virtualization_error_codes
-
+from .error_codes import virtualization_error_codes, surveillance_station_error_codes
 
 # Base exception:
 class SynoBaseException(Exception):
@@ -362,6 +361,18 @@ class CoreSysInfoError(SynoBaseException):
             super().__init__(error_message=error_codes[error_code], *args)
         else:
             super().__init__(error_message="CoreSysInfo Error: %i" % error_code, *args)
+        return
+
+class SurveillanceStationError(SynoBaseException):
+    """Class for an error during a SYNO.SurveillanceStation.*
+    """
+    
+    def __init__(self, error_code: int, *args: object) -> None:
+        self.error_code = error_code
+        if error_code in core_error_codes.keys():
+            super().__init__(error_message=surveillance_station_error_codes[error_code], *args)
+        else:
+            super().__init__(error_message="SurveillanceStation Error: %i" % error_code, *args)
         return
 
 

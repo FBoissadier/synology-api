@@ -12,7 +12,7 @@ from .exceptions import SynoConnectionError, HTTPError, JSONDecodeError, LoginEr
 from .exceptions import FileStationError, AudioStationError, ActiveBackupError, ActiveBackupMicrosoftError, VirtualizationError, BackupError
 from .exceptions import CertificateError, CloudSyncError, DHCPServerError, DirectoryServerError, DockerError, DriveAdminError
 from .exceptions import LogCenterError, NoteStationError, OAUTHError, PhotosError, SecurityAdvisorError, TaskSchedulerError, EventSchedulerError
-from .exceptions import UniversalSearchError, USBCopyError, VPNError, CoreSysInfoError, UndefinedError
+from .exceptions import UniversalSearchError, USBCopyError, VPNError, CoreSysInfoError, UndefinedError, SurveillanceStationError
 import hashlib
 from os import urandom
 from cryptography.hazmat.backends import default_backend
@@ -479,6 +479,8 @@ class Authentication:
                 elif (api_name in ('SYNO.Backup.Service.NetworkBackup', 'SYNO.Finder.FileIndexing.Status',
                                    'SYNO.S2S.Server.Pair')):
                     raise CoreSysInfoError(error_code=error_code)
+                elif (api_name.find('SYNO.SurveillanceStation') > -1):
+                    raise SurveillanceStationError(error_code=error_code)
                 # Unhandled API:
                 else:
                     raise UndefinedError(error_code=error_code, api_name=api_name)

@@ -6,6 +6,7 @@ import yaml
 from os import listdir
 from os.path import isfile, join
 from docstring_extractor import get_docstrings
+import ast
 
 ####################
 # Config Constants #
@@ -14,6 +15,9 @@ DOCS_TRACKER = './docs_status.yaml'
 PARSE_DIR = './synology_api'
 API_LIST_FILE='./documentation/docs/apis/readme.md'
 DOCS_DIR = './documentation/docs/apis/classes/'
+DOCS_APIS_DIR = './documentation/docs/apis/'
+STRUCTURES_FILE = f'{DOCS_APIS_DIR}structures.md'
+ENUMS_FILE = f'{DOCS_APIS_DIR}enumerations.md'
 EXCLUDED_FILES = {'__init__.py', 'auth.py', 'base_api.py', 'error_codes.py', 'exceptions.py', 'utils.py'}
 
 ####################
@@ -82,9 +86,9 @@ def text(text: str, styles: list[str] = [], newline: bool = False) -> str:
     """Generate text element with styles"""
     return __stylize(text, styles) + (NEWLINE if newline else ' ')
 
-def link(text: str, url: str, fullstop: bool = False, newline: bool = False) -> str:
+def link(text: str, url: str, fullstop: bool = False, newline: bool = False, styles: list[str] = []) -> str:
     """Generate link element"""
-    return f' [{text}]({url})'+ ('.' if fullstop else ' ') + (NEWLINE if newline else '')
+    return f' [{__stylize(text, styles)}]({url})'+ ('.' if fullstop else ' ') + (NEWLINE if newline else '')
 
 def div(content: str, spacing: str = '', side: str = '', size: str = '') -> str:
     """Generate div element"""
@@ -281,7 +285,15 @@ def gen_method(method: dict, file_content: str) -> str:
         for param in docstring.params:
             validate_str(method['name'] + ' - params', [param.arg_name, param.type_name, param.description])
             parameters_body += text(param.arg_name or '', ['bold', 'italic'])
-            parameters_body += text(param.type_name or '', ['code'], newline=True)
+            
+            is_type_name_custom = not param.type_name is None and param.type_name.endswith("Type")
+            is_enum_name_custom = not param.type_name is None and param.type_name.endswith("Enum")
+            if is_type_name_custom:
+                parameters_body += link(param.type_name, url=f"/apis/structures.md#{param.type_name.lower()}", newline=True, styles=['code'])
+            elif is_enum_name_custom:
+                parameters_body += link(param.type_name, url=f"/apis/enumerations.md#{param.type_name.lower()}", newline=True, styles=['code'])
+            else:
+                parameters_body += text(param.type_name or '', ['code'], newline=True)
             parameters_body += text(dedup_newlines(param.description or ''), newline=True)
             parameters_body += NEWLINE
         parameters += div(content=parameters_body, spacing='padding', side='left', size='md')
@@ -314,13 +326,130 @@ def write(path: str, content: str):
     with open(path, 'w', encoding="utf-8") as f:
         print('Writing into:', path)  
         f.write(content)
+        
+def get_structure_info(classname: str, docstring: dict) -> dict:
+    
+    content = header('h3', classname, ['code'])
+    
+    if docstring is None:
+        return div(content=content)
 
+    description = text(docstring.short_description or '', newline=True)
+    description += text(docstring.long_description or '', newline=True)
+    description = dedup_newlines(description)
+
+    parameters = ''
+    if docstring.params:
+        parameters = header('h4', 'Parameters')
+        parameters_body = ''
+        for param in docstring.params:
+            validate_str(' - params', [param.arg_name, param.type_name, param.description])
+            parameters_body += text(param.arg_name or '', ['bold', 'italic'])
+            
+            is_type_name_custom = not param.type_name is None and param.type_name.endswith("Type")
+            is_enum_name_custom = not param.type_name is None and param.type_name.endswith("Enum")
+            if is_type_name_custom:
+                parameters_body += link(param.type_name, url=f"/apis/structures.md#{param.type_name.lower()}", newline=True, styles=['code'])
+            elif is_enum_name_custom:
+                parameters_body += link(param.type_name, url=f"/apis/enumerations.md#{param.type_name.lower()}", newline=True, styles=['code'])
+            else:
+                parameters_body += text(param.type_name or '', ['code'], newline=True)
+            parameters_body += text(dedup_newlines(param.description or ''), newline=True)
+            parameters_body += NEWLINE
+        parameters += div(content=parameters_body, spacing='padding', side='left', size='md')
+        
+    content += description
+    content += parameters
+    
+    return div(content=content)
+
+def gen_structure_file(structures_content: list[str]):
+    total_content = ''
+    total_content = META_TAG
+    total_content += f'sidebar_position: 3\n'
+    total_content += f'title: Structures\n'
+    total_content += META_TAG
+    
+    for content in structures_content:
+        total_content += content
+        total_content += SEPARATOR
+        
+    write(STRUCTURES_FILE, total_content)
+        
+
+def get_enum_elements_from_file(class_name, file_path, line_number):
+    with open(file_path, "r") as file:
+        file_content = file.read()
+
+    # Parse the file content into an AST (Abstract Syntax Tree)
+    tree = ast.parse(file_content)
+
+    # Find the class definition in the AST
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == class_name:
+            # Check if the class starts at the given line number
+            if node.lineno == line_number:
+                # Extract the enum members
+                enum_members = {}
+                for item in node.body:
+                    if isinstance(item, ast.Assign):
+                        for target in item.targets:
+                            if isinstance(target, ast.Name):
+                                enum_members[target.id] = ast.literal_eval(item.value)
+                return enum_members
+            else:
+                raise ValueError(f"Line number {line_number} does not match the class definition line {node.lineno}.")
+    
+    raise ValueError(f"Class '{class_name}' not found in the file.")
+
+def get_enum_info(class_name: str, file_path: str, line_number: int, docstring: str):
+    
+    enums_member = get_enum_elements_from_file(class_name, file_path, line_number)
+    
+    content = header('h3', class_name, ['code'])
+    description = ''
+    if not docstring is None:
+        description = text(docstring.short_description or '', newline=True)
+        description += text(docstring.long_description or '', newline=True)
+        description = dedup_newlines(description)
+        
+    members = ''
+    if enums_member:
+        members = header('h4', 'Members')
+        member_body = ''
+        for key, value in enums_member.items():
+            member_body += text(key or '', ['bold', 'italic'])
+            member_body += text(str(value) or '', ['code'], newline=True)
+            member_body += NEWLINE
+        members += div(content=member_body, spacing='padding', side='left', size='md')
+        
+    content += description
+    content += members
+    
+    return div(content=content)
+
+def gen_enumeration_file(enum_content: list[str]):
+    total_content = ''
+    total_content = META_TAG
+    total_content += f'sidebar_position: 4\n'
+    total_content += f'title: Enumerations\n'
+    total_content += META_TAG
+    
+    for content in enum_content:
+        total_content += content
+        total_content += SEPARATOR
+        
+    write(ENUMS_FILE, total_content)
+        
 def main():
     parser = init_parser()
     files, parse_api_list, parse_docs = validate_args(parser)
 
     ### Generation for Getting Started/Supported APIs with all the APIs user per class.
     supported_apis = gen_supported_apis()
+    
+    enumeration_list: list[str] = []
+    structure_list: list[str] = []
 
     for file_name in files:
         doc_content = ''
@@ -334,20 +463,27 @@ def main():
                 continue
 
             for class_type in docstrings["content"]:
-                if is_private(class_type['name']):
+                classname: str = class_type['name']
+                if is_private(classname):
                     continue
+                if classname.endswith("Type"):
+                    structure_list.append(get_structure_info(classname, class_type['docstring']))
+                elif classname.endswith("Enum"):
+                    enumeration_list.append(get_enum_info(classname, file_path, class_type['line'], class_type['docstring']))
+                else:
+                    supported_apis += parse_class_apis(classname, file_content)
+                    doc_content += gen_header(classname, class_type['docstring_text'])
 
-                supported_apis += parse_class_apis(class_type['name'], file_content)
-                doc_content += gen_header(class_type['name'], class_type['docstring_text'])
-
-                for method in class_type['content']:
-                    if is_private(method['name']):
-                        continue
-                    doc_content += gen_method(method, file_content)
+                    for method in class_type['content']:
+                        if is_private(method['name']):
+                            continue
+                        doc_content += gen_method(method, file_content)
 
         # Write to md files if the args were set
         if parse_docs: 
             write(DOCS_DIR + file_name.replace('.py', '.md'), doc_content)
+            gen_structure_file(structure_list)
+            gen_enumeration_file(enumeration_list)
         print('='*20)
     # Write to md files if the args were set
     if parse_api_list:

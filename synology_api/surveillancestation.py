@@ -3,6 +3,7 @@ from typing import Optional, Any, List
 from . import base_api
 import json
 from enum import Enum
+from dataclasses import dataclass, asdict
 
 
 class SurveillanceStation(base_api.BaseApi):
@@ -63,7 +64,6 @@ class SurveillanceStation(base_api.BaseApi):
             ```
         """
         
-        
         api_name = 'SYNO.SurveillanceStation.Info'
         info = self.gen_list[api_name]
         api_path = info['path']
@@ -74,42 +74,43 @@ class SurveillanceStation(base_api.BaseApi):
 
         return self.request_data(api_name, api_path, req_param)
 
-    def camera_save(self, id: str = None,
-                    name: str = None,
-                    dsld: int = None,
-                    newName: str = None,
-                    ip: str = None,
-                    port: int = None,
-                    vendor: str = None,
-                    model: str = None,
-                    userName: str = None,
-                    password: str = None,
-                    videoCodec: int = None,
-                    audioCodec: int = None,
-                    tvStandard: int = None,
-                    channel: str = None,
-                    userDefinePath: str = None,
-                    fov: str = None,
-                    streamXX: Any = None,
-                    recordTime: int = None,
-                    preRecordTime: int = None,
-                    postRecordTime: int = None,
-                    enableRecordingKeepDays: bool = None,
-                    recordingKeepDays: int = None,
-                    enableRecordingKeepSize: bool = None,
-                    recordingKeepSize: int = None,
-                    enableLowProfile: bool = None,
-                    recordSchedule: list[int] = None,
-                    rtspPathTimeout: int = None) -> dict[str, object] | str:
-        api_name = 'SYNO.SurveillanceStation.Camera'
+    def camera_save(self, params: SaveCameraParamType) -> dict:
+        """Creation or edition of a camera
+        
+            Parameters
+            ----------
+            params : SaveCameraParamType
+                Check details of the parameters structures by clicking on the type
+        
+            Returns
+            -------
+            dict
+                _description_
+        
+            Example return
+            ----------
+            ```json
+            {
+                "data": {
+                    "template": "data"
+                },
+                "success": true
+            }
+            ```
+        """
+        
+        
+        params_dict: dict = _asdict_ignore_none(params)
+        
+        api_name = "SYNO.SurveillanceStation.Camera"
         info = self.gen_list[api_name]
-        api_path = info['path']
-        req_param = {'version': info['maxVersion'], 'method': 'Save'}
+        api_path = info["path"]
+        req_param = { 
+            "version": info["maxVersion"],
+            "method": "Save"
+        }
 
-        for key, val in locals().items():
-            if key not in ['self', 'api_name', 'info', 'api_path', 'req_param']:
-                if val is not None:
-                    req_param[str(key)] = val
+        req_param.update(params_dict)
 
         return self.request_data(api_name, api_path, req_param)
 
@@ -123,7 +124,7 @@ class SurveillanceStation(base_api.BaseApi):
             Parameters
             ----------
             idList : str, optional
-                The list of <CAMERA_ID> to be queried concatenated by ",". Defaults to `""`
+                The list of CAMERA_ID to be queried concatenated by ",". Defaults to `""`
             blFromCamList : bool, optional
                 Indicating if the caller is from cam list. Defaults to `False`
             offset : int, optional
@@ -138,7 +139,7 @@ class SurveillanceStation(base_api.BaseApi):
                     0x01: LIVEVIEW
                     0x02: PLAYBACK
                     0x04: LENS
-                    0x08: AUDIO.
+                    0x08: AUDIO
             basic : bool, optional
                 Indicating to show basic settings or not. Defaults to `True`
             streamInfo : bool, optional
@@ -146,11 +147,10 @@ class SurveillanceStation(base_api.BaseApi):
             blPrivilege : bool, optional
                 Indicating if the user privilege should be checked or not. Defaults to `True`
             camStm : int, optional
-                Stream number of the camera live view
-                    • 0: Live stream
-                    • 1: Recording stream
-                    • 2: Mobile stream (default value)
-                Defaults to `2`
+                Stream number of the camera live view. Defaults to `2`
+                    0: Live stream
+                    1: Recording stream
+                    2: Mobile stream (default value)
             blGetMulticastInfo : bool, optional
                 Indicating to show multicast infos or not. Defaults to `True`
             videoCapInfo : bool, optional
@@ -5715,6 +5715,39 @@ class SurveillanceStation(base_api.BaseApi):
                     req_param[str(key)] = val
 
         return self.request_data(api_name, api_path, req_param)
+    
+    def list_camera_model(self) -> dict:
+        """Get list of camera model available
+        
+            Returns
+            -------
+            dict
+                List of camera model in cameraModel, list of camera capabilities in camCap and a tempCamInfo
+        
+            Example return
+            ----------
+            ```json
+            {
+                "data": {
+                    "camCap": [{...}],
+                    "cameraModel": [{...}*8000],
+                    "tempCamInfo": {...}
+                },
+                "success": true
+            }
+            ```
+        """
+        
+        api_name = 'SYNO.SurveillanceStation.Preload'
+        info = self.gen_list[api_name]
+        api_path = info["path"]
+        req_param = {
+            "method": "CamModelCapPreload",
+            "version": info['minVersion'],
+            "blAppendCamId": True
+        }
+        
+        return self.request_data(api_name, api_path, req_param)
 
     def list_audio_pattern(self) -> dict:
         """Get list of audio patterns
@@ -6143,4 +6176,222 @@ class SurveillanceStation(base_api.BaseApi):
         
         return self.request_data(api_name, api_path, req_param)
     
+
+
+
+
+
+
+def _asdict_ignore_none(instance):
+    # Convert the dataclass to a dictionary
+    data = asdict(instance)
+    
+    # Remove keys where the value is None
+    return {k: v for k, v in data.items() if v is not None}
+
+class VideoCodecEnum(Enum):
+    """Handle available video codec in Surveillance Station
+    """
+    Unknown = 0
+    MJPEG = 1
+    MPEG4 = 2
+    H264 = 3
+    MXPEG = 5
+    H265 = 6
+    H264_PLUS = 7
+
+class AudioCodecEnum(Enum):
+    """Handle available audio codec in Surveillance Station
+    """
+    Unknown = 0
+    PCM = 1
+    G711 = 2
+    G726 = 3
+    AAC = 4
+    AMR = 5
+    UserDefine = 6
+
+class TvStandardEnum(Enum):
+    """Handle available TV Standard in Surveillance Station
+    """
+    NONE = 0
+    NTSC = 1
+    PAL = 2
+
+class RtpsPathTimeoutEnum(Enum):
+    """Handle timeout of Rtps in Surveillance Station
+    """
+    ONE_HOUR = 0
+    FOREVER = 1
+
+class BitrateCtrlEnum(Enum):
+    """Types of bitrate control available in Surveillance Station
+    """
+    NONE = 0
+    VARIABLE = 1
+    CONSTANT = 2 
+
+class CameraStreamEnum(Enum):
+    """Types of camera stream available in Surveillance Station
+    """
+    Live = 0
+    Recording = 1
+    Mobile = 2
+
+class CameraStatusEnum(Enum):
+    """Types of status a camera can return in Surveillance Station
+    """
+    Normal = 1
+    Deleted = 2
+    Disconnected = 3
+    Unavailable = 4
+    Ready = 5
+    Inaccessible = 6
+    Disabled = 7
+    Unrecognized = 8
+    Setting = 9
+    ServerDisconnected = 10
+    Mirgrating = 11
+    Others = 12
+    StorageRemoved = 13
+    Stopping = 14
+    ConnectHistFailed = 15
+    Unauthorized = 16
+    RTPSError = 17
+    NoVideo = 18
+    
+@dataclass
+class StreamSettingType:
+    """Dataclass that represent the parameters of a stream of a camera
+    
+        Parameters
+        ----------
+        fps : int, optional
+            Frames per second of the stream. Defaults to `None`
+        resolution : str, optional
+            Denoted as width * height. Defaults to `None`
+        bitrateCtrl : int, optional
+            The bitrate control type. Defaults to `None`
+            - 0: None
+            - 1: Variable bitrate
+            - 2: Constant bitrate
+        quality : int, optional
+            An integer ranged from 1 to 5 to indicate the quality of the stream. Defaults to `None`
+            
+            `This parameter only valid when using variable bitrate.`
+        constantBitrate : int, optional
+            The constant bitrate value. Defaults to `None`
+            
+            `This parameter only valid when using constant bitrate.`
+
+    """
+    fps: Optional[int] = None
+    resolution: Optional[str] = None
+    bitrateCtrl: Optional[int] = None
+    quality: Optional[int] = None
+    constantBitrate: Optional[int] = None
+
+@dataclass
+class SaveCameraParamType:
+    """Dataclass that represent the parameters of the `camera_save` function
+    
+        Parameters
+        ----------
+        id : int, optional
+            Camera id to be edited. If equal to 0, add new camera according to request parameter. Defaults to `None`
+        name : str, optional
+            Camera name to be edited. Note that this parameter is only valid when `id` is not specified and `dsId` is specified. Defaults to `None`
+        dsId : int, optional
+            Camera owner ds id. Defaults to `None`
+        newName : str, optional
+            `Needed when add case` Camera new name. Defaults to `None`
+        ip : str, optional
+            `Needed when add case` Camera ip. Defaults to `None`
+        port : int, optional
+            `Needed when add case` Camera port. Defaults to `None`
+        vendor : str, optional
+            `Needed when add case` Camera vendor. Defaults to `None`
+        model : str, optional
+            `Needed when add case` Camera model. Defaults to `None`
+        userName : str, optional
+            `Needed when add case` Camera login user name. Defaults to `None`
+        password : str, optional
+            `Needed when add case` Camera login password. Defaults to `None`
+        videoCodec : VideoCodecEnum, optional
+            Camera video codec. Defaults to `None`
+        audioCodec : AudioCodecEnum, optional
+            Camera audio codec. Defaults to `None`
+        tvStandard : TvStandardEnum, optional
+            Camera tv standard. Defaults to `None`
+        channel : str, optional
+            Camera channel. Defaults to `None`
+        userDefinePath : str, optional
+            `Needed when add user define camera` Camera streaming path. This parameter only valid when camera vendor is `User` and model is `Define`.
+            Defaults to `None`
+        fov : str, optional
+            Camera field of view. Defaults to `None`
+        stream1 : StreamSettingType, optional
+            Stream 1 parameters. Defaults to `None`
+        stream2 : StreamSettingType, optional
+            Stream 2 parameters. Defaults to `None`
+        stream3 : StreamSettingType, optional
+            Stream 3 parameters. Defaults to `None`
+        recordTime : int, optional
+            The recording length in minute. Defaults to `None`
+        preRecordTime : int, optional
+            Extra recording time before the start of each recording in second. Defaults to `None`
+        postRecordTime : int, optional
+            Extra recording time after the end of each recording in second. Defaults to `None`
+        enableRecordingKeepDays : bool, optional
+            Does the rotation occur when the limit time is reached. Defaults to `None`
+        recordingKeepDays : int, optional
+            The upper bound indicating how long a file can be store before rotation. Defaults to `None`
+        enableRecordingKeepSize : bool, optional
+            Does the rotation occur when the limit space is reached. Defaults to `None`
+        recordingKeepSize : int, optional
+            The upper bound that total file size can reach before rotation. Defaults to `None`
+        enableLowProfile : bool, optional
+            Does low bandwidth profile enabled. Defaults to `None`
+        recordSchedule : List[int], optional
+            A string consists of 48*7 digits to represent the scheduling. Note that each digit stands for the schedule type of half-hour:
+                - 0: No scheduled plan
+                - 1: Continuous Recording
+                - 2: Motion Detection Recording
+                - 3: Custom Detection 1
+                - 4: Custom Detection 2
+                
+            Defaults to `None`
+        rtspPathTimeout : RtpsPathTimeoutEnum, optional
+            The timeout of share stream. Defaults to `None`
+        
+    """
+    id: Optional[int] = None
+    name: Optional[str] = None
+    dsId: Optional[int] = None
+    newName: Optional[str] = None
+    ip: Optional[str] = None
+    port: Optional[int] = None
+    vendor: Optional[str] = None
+    model: Optional[str] = None
+    userName: Optional[str] = None
+    password: Optional[str] = None
+    videoCodec: Optional[VideoCodecEnum] = None
+    audioCodec: Optional[AudioCodecEnum] = None
+    tvStandard: Optional[TvStandardEnum] = None
+    channel: Optional[str] = None
+    userDefinePath: Optional[str] = None
+    fov: Optional[str] = None
+    stream1: Optional[StreamSettingType] = None
+    stream2: Optional[StreamSettingType] = None
+    stream3: Optional[StreamSettingType] = None
+    recordTime: Optional[int] = None
+    preRecordTime: Optional[int] = None
+    postRecordTime: Optional[int] = None
+    enableRecordingKeepDays: Optional[bool] = None
+    recordingKeepDays: Optional[int] = None
+    enableRecordingKeepSize: Optional[bool] = None
+    recordingKeepSize: Optional[int] = None
+    enableLowProfile: Optional[bool] = None
+    recordSchedule: Optional[List[int]] = None
+    rtspPathTimeout: Optional[RtpsPathTimeoutEnum] = None
 

@@ -192,7 +192,8 @@ calendar_error_codes: dict[int, str] = {
 # different methods, all the error codes I found are on # Pages: 71, 81, 85, 93, 103, 113, 131, 132, 139, 144, 155,
 # 167, 169, 176, 187, 190, 191, 201, 211, 212, 217, 222, 227, #         241, 245, 249, 253, 264, 279, 281, 305, 314,
 # 321, 328, 363, 365, 368, 369, 393, 395, 397, 403, 410, 412, 415, #         419, 430, 451, 473, 539, 556
-surveillance_station_error_codes: dict[int, str] = {
+surveillance_station_error_codes: dict[int, str] = error_codes
+surveillance_station_error_codes.update({
     400: 'Execution failed.',
     401: 'Parameter invalid.',
     402: 'Camera disabled.',
@@ -225,7 +226,7 @@ surveillance_station_error_codes: dict[int, str] = {
     563: 'The face profile is created or edited failed due to duplicated account.',
     564: 'The face result try to query doesn\'t exist',
     567: 'The face database is under synchronization.',
-}
+})
 
 # # Source: sds.bundle.js from DSM
 core_error_codes: dict[int, str] = error_codes
